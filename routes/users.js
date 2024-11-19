@@ -1,4 +1,7 @@
 import express from 'express';
+import database from '../database.js';
+import connection from '../database.js';
+
 const router = express.Router();
 
 let users = [
@@ -30,6 +33,7 @@ router.post('/authorization', (req, res) => {
   }
   res.status(200).json({ message: "Authorized successfully" });
 })
+
 
 
 
