@@ -2,6 +2,8 @@ import express from 'express';
 import users from './routes/users.js';
 import hotels from './routes/hotels.js'
 import cors from 'cors';
+import bcrypt from 'bcrypt'
+import jwt from 'jsonwebtoken'
 
 const app = express();
 const port = 8000;
