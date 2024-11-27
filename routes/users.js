@@ -1,6 +1,7 @@
 import express from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import authMiddleware from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -29,6 +30,7 @@ router.post('/registration', async (req, res) => {
   res.status(200).json({ message: "Registration successfully" });
 });
 
+
 router.post('/login', async (req, res) => {
   const { username, password } = req.body;
   const user = users.find((user) => user.username === username);
@@ -43,7 +45,6 @@ router.post('/login', async (req, res) => {
   res.status(200).json(token);
 });
 
-
 router.get('/:id', (req, res) => {
   let id = parseInt(req.params.id);
   let user = users.filter((user) => user.id === id);
@@ -52,6 +53,10 @@ router.get('/:id', (req, res) => {
   } else {
     res.status(200).json(user);
   }
+});
+
+router.get('/booked', authMiddleware, (req, res) => {
+
 });
 
 export default router;

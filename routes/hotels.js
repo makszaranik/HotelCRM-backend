@@ -1,6 +1,5 @@
 import express from 'express'
-import bcrypt from 'bcrypt'
-import jwt from 'jsonwebtoken'
+import authMiddleware from '../middleware/auth.js'
 
 const router = express.Router()
 
@@ -20,7 +19,8 @@ const hotels = [
             "price":12,
             "startDate":"01.12.2024",
             "endDate":"07.12.2024",
-            "customer":""
+            "customer":"",
+            "image":"https://content.skyscnr.com/available/1647052546/1647052546_960x576.jpg"
          },
          {
             "id":2,
@@ -141,102 +141,50 @@ router.post('/:id/rooms', (req, res) => {
 
 
 
-router.patch('/:hotelId/rooms/:roomId/book', async (req, res) => {
-   const { hotelId, roomId } = req.params;
-   const token = req.header('Authorization')?.split(' ')[1];
-
-   if (!token) {
-      return res.status(401).json({ message: "Access Denied" });
+router.patch('/:hotelId/rooms/:roomId/book', authMiddleware, async (req, res) => {
+   const {hotelId, roomId} = req.params
+   const hotel = hotels.find((hotel) => hotel.id === parseInt(hotelId));
+   if (!hotel) {
+      return res.status(404).json({ message: `Hotel with id ${hotelId} not found` });
    }
-
-   try {
-      const decoded = jwt.verify(token, 'your-secret-key');
-      req.user = decoded;
-
-      const hotel = hotels.find((hotel) => hotel.id === parseInt(hotelId));
-      if (!hotel) {
-         return res.status(404).json({ message: `Hotel with id ${hotelId} not found` });
-      }
-
-      const room = hotel.rooms.find((room) => room.id === parseInt(roomId));
-      if (!room) {
-         return res.status(404).json({ message: `Room with id ${roomId} not found` });
-      }
-
-      if (room.status === 'booked') {
-         return res.status(400).json({ message: "Room is already booked" });
-      }
-
-      room.status = 'booked';
-      room.customer = req.user.username;
-
-      return res.status(200).json({
-         message: `Room with id ${roomId} in hotel with id ${hotelId} successfully booked`
-      });
-
-   } catch (err) {
-      console.error("JWT Verification Error:", err.message);
-      return res.status(403).json({ message: "InvalidToken" });
+   const room = hotel.rooms.find((room) => room.id === parseInt(roomId));
+   if (!room) {
+      return res.status(404).json({ message: `Room with id ${roomId} not found` });
    }
+   if (room.status === 'booked') {
+      return res.status(400).json({ message: "Room is already booked" });
+   }
+   room.status = 'booked';
+   room.customer = req.user.username;
+   return res.status(200).json({
+      message: `Room with id ${roomId} in hotel with id ${hotelId} successfully booked`
+   });
 });
 
 
-router.patch('/:hotelId/rooms/:roomId/unbook', async (req, res) => {
+router.patch('/:hotelId/rooms/:roomId/unbook', authMiddleware, async (req, res) => {
    const { hotelId, roomId } = req.params;
-   const token = req.header('Authorization')?.split(' ')[1];
-
-   if (!token) {
-      return res.status(401).json({ message: "Access Denied" });
+   const hotel = hotels.find((hotel) => hotel.id === parseInt(hotelId));
+   if (!hotel) {
+      return res.status(404).json({ message: `Hotel with id ${hotelId} not found` });
    }
-
-   try {
-      const decoded = jwt.verify(token, 'your-secret-key');
-      req.user = decoded;
-
-      const hotel = hotels.find((hotel) => hotel.id === parseInt(hotelId));
-      if (!hotel) {
-         return res.status(404).json({ message: `Hotel with id ${hotelId} not found` });
-      }
-
-      const room = hotel.rooms.find((room) => room.id === parseInt(roomId));
-      if (!room) {
-         return res.status(404).json({ message: `Room with id ${roomId} not found` });
-      }
-
-      if (room.status !== 'booked' || room.customer !== req.user.username) {
-         return res.status(400).json({ message: "You cannot unbook this room" });
-      }
-
-      room.status = 'available';
-      room.customer = '';
-
-      return res.status(200).json({
-         message: `Room with id ${roomId} in hotel with id ${hotelId} successfully unbooked`
-      });
-
-   } catch (err) {
-      console.error("JWT Verification Error:", err.message);
-      return res.status(403).json({ message: "InvalidToken" });
+   const room = hotel.rooms.find((room) => room.id === parseInt(roomId));
+   if (!room) {
+      return res.status(404).json({ message: `Room with id ${roomId} not found` });
    }
+   if (room.status !== 'booked' || room.customer !== req.user.username) {
+      return res.status(400).json({ message: "You cannot unbook this room" });
+   }
+   room.status = 'available';
+   room.customer = '';
+   return res.status(200).json({
+      message: `Room with id ${roomId} in hotel with id ${hotelId} successfully unbooked`
+   });
 });
 
 
-//uncheked
-router.get('/bookings', async (req, res) => {
-   const token = req.header('Authorization')?.split(' ')[1];
 
-   if (!token) {
-      return res.status(401).json({ message: "Access Denied" });
-   }
-
-   try {
-      const decoded = jwt.verify(token, 'your-secret-key');
-      req.user = decoded;
-   } catch (err) {
-      console.error("JWT Verification Error:", err.message);
-      return res.status(403).json({ message: "InvalidToken" });
-   }
-
+router.get('/bookings', authMiddleware, async (req, res) => {
    const username = req.user.username; 
    const userBookings = [];
 
