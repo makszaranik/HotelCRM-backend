@@ -25,12 +25,13 @@ const hotels = [
          {
             "id":2,
             "type":"double",
-            "status":"booked",
+            "status":"available",
             "bedsCount":2,
             "price":12,
             "startDate":"01.12.2024",
             "endDate":"07.12.2024",
-            "customer":""
+            "customer":"",
+            "image":"https://content.skyscnr.com/available/1647052546/1647052546_960x576.jpg"
          }
       ]
    },
@@ -182,8 +183,6 @@ router.patch('/:hotelId/rooms/:roomId/unbook', authMiddleware, async (req, res) 
    });
 });
 
-
-
 router.get('/bookings', authMiddleware, async (req, res) => {
    const username = req.user.username; 
    const userBookings = [];
@@ -203,9 +202,5 @@ router.get('/bookings', authMiddleware, async (req, res) => {
  
    res.status(200).json(userBookings);
  });
-
-
-
-
 
 export default router;

@@ -55,8 +55,5 @@ router.get('/:id', (req, res) => {
   }
 });
 
-router.get('/booked', authMiddleware, (req, res) => {
-
-});
 
 export default router;
