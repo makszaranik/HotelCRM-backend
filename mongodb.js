@@ -1,19 +1,14 @@
-const { MongoClient } = require('mongodb');
+import mongoose from "mongoose";
 
-async function fetchData() {
-  const client = new MongoClient('mongodb://localhost:27017', { useNewUrlParser: true, useUnifiedTopology: true });
-
+const getConnection = async () => {
   try {
-    await client.connect();
-    console.log('Connected to MongoDB');
-    const db = client.db('school');
-    const result = await db.collection('students').find().toArray();
-    console.log('Data from MongoDB:', result);
-  } catch (err) {
-    console.error('Error:', err);
-  } finally {
-    await client.close();
+    mongoose.set('strictQuery', true);
+    await mongoose.connect('mongodb://localhost:27017', {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    });
+  } catch (error) {
+    console.error('Error connecting to the database:', error);
   }
-}
-
-fetchData();
+};
+export default getConnection;

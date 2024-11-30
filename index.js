@@ -3,6 +3,8 @@ import mongoose from 'mongoose';
 import users from './routes/users.js';
 import hotels from './routes/hotels.js';
 import cors from 'cors';
+import mongodb from './mongodb.js';
+import getConnection from './mongodb.js';
 
 const app = express();
 const port = 8000;
@@ -18,19 +20,11 @@ app.use(cors(corsOptions));
 app.use('/api/users', users);
 app.use('/api/hotels', hotels);
 
-const start = async () => {
-  try {
-    mongoose.set('strictQuery', true);
-    await mongoose.connect('mongodb://localhost:27017', {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
-    app.listen(port, () => {
-      console.log(`Example app listening on port ${port}`);
-    });
-  } catch (error) {
-    console.error('Error connecting to the database:', error);
-  }
-};
 
-start();
+
+getConnection()
+app.listen(port, () => {
+  console.log(`Example app listening on port ${port}`);
+});
+
+
