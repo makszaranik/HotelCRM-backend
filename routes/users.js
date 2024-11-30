@@ -31,6 +31,8 @@ router.post('/registration', async (req, res) => {
 });
 
 
+
+
 router.post('/login', async (req, res) => {
   const { username, password } = req.body;
   const user = users.find((user) => user.username === username);
