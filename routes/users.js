@@ -1,59 +1,52 @@
 import express from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import authMiddleware from '../middleware/auth.js';
+import { getConnection } from '../mongodb.js';
 
 const router = express.Router();
 
-let users = [];
-
-const initUsers = async () => {
-  users = [
-    { id: 1, username: "Max", password: await bcrypt.hash("123", 10) },
-    { id: 2, username: "Andrew", password: await bcrypt.hash("123", 10) },
-    { id: 3, username: "Lena", password: await bcrypt.hash("123", 10) }
-  ];
-};
-
-initUsers();
-
 router.post('/registration', async (req, res) => {
   const { username, password } = req.body;
-  const user = users.find((user) => user.username === username);
-  if(user){
-    return res.status(409).json({ message: "User exists" });
+  const database = getConnection();
+  const userCollection = database.collection('users');
+
+  try {
+    const user = await userCollection.findOne({ username: username });
+    if (user) {
+      return res.status(409).json({ message: "User exists" });
+    }
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const newUser = {
+      username: username,
+      password: hashedPassword
+    };
+    await userCollection.insertOne(newUser);
+    res.status(201).json({ message: "User registered successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Error registering user", error: error.message });
   }
-  let maxId = 0;
-  users.forEach(user => ((user.id > maxId) ? maxId = user.id : maxId));
-  const hasedPassword = await bcrypt.hash(password, 10);
-  users.push({ id: maxId + 1, username: username, password: hasedPassword });
-  res.status(200).json({ message: "Registration successfully" });
 });
-
-
-
 
 router.post('/login', async (req, res) => {
   const { username, password } = req.body;
-  const user = users.find((user) => user.username === username);
-  if (!user) {
-    return res.status(401).json({ message: "Authentication failed" });
-  }
-  const passwordMatch = await bcrypt.compare(password, user.password);
-  if(!passwordMatch){
-    return res.status(401).json({ message: "Authentication failed" });
-  }
-  const token = jwt.sign({ userId: user.id, username: user.username }, 'your-secret-key', { expiresIn: '1h' });
-  res.status(200).json(token);
-});
-
-router.get('/:id', (req, res) => {
-  let id = parseInt(req.params.id);
-  let user = users.filter((user) => user.id === id);
-  if (user.length === 0) {
-    res.status(404).json({ message: "User not found" });
-  } else {
-    res.status(200).json(user);
+  const database = getConnection();
+  const userCollection = database.collection('users');
+  
+  try {
+    const user = await userCollection.findOne({ username: username });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (isMatch) {
+      const token = jwt.sign({ userId: user.id, username: user.username }, 'your-secret-key', { expiresIn: '1h' });
+      res.status(200).json(token);
+    } else {
+      res.status(401).json({ message: "Invalid credentials" });
+    }
+  } catch (error) {
+    console.error("Error during login:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 });
 

@@ -1,10 +1,8 @@
 import express from 'express';
-import mongoose from 'mongoose';
 import users from './routes/users.js';
 import hotels from './routes/hotels.js';
 import cors from 'cors';
-import mongodb from './mongodb.js';
-import getConnection from './mongodb.js';
+import { connectDatabase } from './mongodb.js';
 
 const app = express();
 const port = 8000;
@@ -21,10 +19,10 @@ app.use('/api/users', users);
 app.use('/api/hotels', hotels);
 
 
-
-getConnection()
-app.listen(port, () => {
-  console.log(`Example app listening on port ${port}`);
+connectDatabase().then(() => {
+  app.listen(port, () => {
+    console.log(`Example app listening on port ${port}`);
+  });
+}).catch(err => {
+  console.error('Error starting the server:', err);
 });
-
-

@@ -1,14 +1,27 @@
-import mongoose from "mongoose";
+import { MongoClient } from 'mongodb';
 
-const getConnection = async () => {
+const url = 'mongodb://localhost:27017';
+const databaseName = 'hotelDB';
+
+let database;
+
+const connectDatabase = async () => {
+  const client = new MongoClient(url, { useUnifiedTopology: true, useNewUrlParser: true });
   try {
-    mongoose.set('strictQuery', true);
-    await mongoose.connect('mongodb://localhost:27017', {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
+    await client.connect();
+    database = client.db(databaseName);
+    console.log('Database connected successfully');
   } catch (error) {
-    console.error('Error connecting to the database:', error);
+    console.error('Database connection failed:', error);
+    throw error;
   }
 };
-export default getConnection;
+
+const getConnection = () => {
+  if (!database) {
+    throw new Error('Database not initialized');
+  }
+  return database;
+};
+
+export { connectDatabase, getConnection };
