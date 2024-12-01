@@ -2,6 +2,7 @@ import express from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { getConnection } from '../mongodb.js';
+import authMiddleware from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -49,6 +50,27 @@ router.post('/login', async (req, res) => {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 });
+
+router.post('/logout', authMiddleware, async (req, res) => {
+  try {
+    const token = req.header('Authorization')?.split(' ')[1];
+    
+    if (!token) {
+      return res.status(400).json({ error: 'Token is missing' });
+    }
+
+    const database = getConnection();
+    const tokenCollection = database.collection('token_dead_list');
+
+    await tokenCollection.insertOne({ token });
+
+    return res.status(200).json({ message: 'Logged out successfully' });
+  } catch (error) {
+    console.error('Logout error:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 
 
 export default router;
