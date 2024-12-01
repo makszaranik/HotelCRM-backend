@@ -146,40 +146,45 @@ router.patch('/:hotelId/rooms/:roomId/unbook', authMiddleware, async (req, res) 
   });
 });
 
-
-//TODO
+//find all rooms with customer = current user
 router.get('/bookings', authMiddleware, async (req, res) => {
-   const username = req.user.username; 
-   const userBookings = [];
+  try {
+    const username = req.user.username; 
+    const userBookings = [];
 
-   const database = getConnection();
-   const hotelCollection = database.collection('hotels');
+    const database = getConnection();
+    const hotelCollection = database.collection('hotels');
 
-   /*
-   const result = await 
-   hotels.forEach(hotel => {
-     hotel.rooms.forEach(room => {
-       if (room.customer === username) {
-         userBookings.push({
-           hotelId: hotel.id,
-           hotelName: hotel.name,
-           city: hotel.city,
-           room: room,
-         });
-       }
-     });
-   });
-   */
+    const hotels = await hotelCollection.find({ 'rooms.customer': username }).toArray();
 
-   const result = await hotelCollection.find({ 'rooms.customer' : username}).toArray();
-   result.forEach(item => {
-     userBookings.push({
-      hotelId: item.hotelId
-     })
-   });
+    hotels.forEach(hotel => {
+      hotel.rooms.forEach(room => {
+        if (room.customer === username) {
+          userBookings.push({
+            hotelId: hotel.id,
+            hotelName: hotel.name,
+            city: hotel.city,
+            room: {
+              id: room.id,
+              type: room.type,
+              status: room.status,
+              bedsCount: room.bedsCount,
+              price: room.price,
+              startDate: room.startDate,
+              endDate: room.endDate,
+              image: room.image,
+            },
+          });
+        }
+      });
+    });
 
- 
-   res.status(200).json(userBookings);
- });
+    res.status(200).json(userBookings);
+
+  } catch (error) {
+    res.status(500).json({ error: 'Server Error' });
+  }
+});
+
 
 export default router;
