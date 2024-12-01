@@ -3,9 +3,10 @@ import users from './routes/users.js';
 import hotels from './routes/hotels.js';
 import cors from 'cors';
 import { connectDatabase } from './mongodb.js';
+import './loadEnv.js';
 
 const app = express();
-const port = 8000;
+const port = process.env.PORT || 8000;
 
 var corsOptions = {
   origin: 'http://localhost:8080',
