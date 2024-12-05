@@ -186,5 +186,125 @@ router.get('/bookings', authMiddleware, async (req, res) => {
   }
 });
 
+//create a new hotel
+router.post('/new', async (req, res) => {
+  try {
+    const { name, city, image } = req.body;
+    if (!name || !city || !image) {
+      return res.status(400).json({ message: 'Name and city and image required' });
+    }
+
+    const database = getConnection();
+    const hotelCollection = database.collection('hotels');
+
+    const lastHotel = await hotelCollection.find().sort({ id: -1 }).limit(1).toArray();
+    const newId = lastHotel.length > 0 ? lastHotel[0].id + 1 : 1;
+
+    const newHotel = {
+      id: newId,
+      name,
+      city,
+      image,
+      rooms: [],
+    };
+
+    await hotelCollection.insertOne(newHotel);
+    res.status(201).json(newHotel);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server internal error' });
+  }
+});
+
+
+//delete hotel with id = "id"
+router.delete('/:id', async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+
+    const database = getConnection();
+    const hotelCollection = database.collection('hotels');
+
+    const result = await hotelCollection.deleteOne({ id });
+    if (result.deletedCount === 1) { 
+      res.status(200).json({ message: 'Hetel successfully deleted' });
+    } else {
+      res.status(404).json({ message: 'Hotel not found' });
+    }
+  } catch (error) {
+    res.status(500).json({ message: 'Server internal error' });
+  }
+});
+
+//add new room to hotel with id = "id"
+router.post('/:hotelId/rooms/add', async (req, res) => {
+  try {
+    const { hotelId } = req.params;
+    const { type, bedsCount, price, image, startDate, endDate, status } = req.body;
+
+    if (!type || bedsCount === undefined || price === undefined || !image || !startDate || !endDate || !status) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+    
+
+    const database = getConnection();
+    const hotelCollection = database.collection('hotels');
+
+    const hotel = await hotelCollection.findOne({ id: parseInt(hotelId) });
+    if (!hotel) {
+      return res.status(404).json({ message: "Hotel not found" });
+    }
+
+    const newRoomId = hotel.rooms.length > 0 ? hotel.rooms[hotel.rooms.length - 1].id + 1 : 1;
+
+    const newRoom = {
+      id: newRoomId,
+      type,
+      bedsCount,
+      price,
+      image,
+      startDate,
+      endDate,
+      status,
+    };
+
+    await hotelCollection.updateOne(
+      { id: parseInt(hotelId) },
+      { $push: { rooms: newRoom } }
+    );
+
+    res.status(201).json(newRoom);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+
+//delete room with id = "id" from hotel with id = "id"
+router.delete('/:hotelId/rooms/:roomId', async (req, res) => {
+  try {
+    const hotelId = parseInt(req.params.hotelId);
+    const roomId = parseInt(req.params.roomId);
+
+    const database = getConnection();
+    const hotelCollection = database.collection('hotels');
+
+    const updateResult = await hotelCollection.updateOne(
+      { id: hotelId },
+      { $pull: { rooms: { id: roomId } } }
+    );
+
+    if (updateResult.modifiedCount === 1) {
+      res.status(200).json({ message: 'Room successfully deleted' });
+    } else {
+      res.status(404).json({ message: 'Hotel or room not found' });
+    }
+  } catch (error) {
+    res.status(500).json({ message: 'Server internal error' });
+  }
+});
+
+
 
 export default router;
