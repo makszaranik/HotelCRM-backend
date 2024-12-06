@@ -11,58 +11,76 @@ router.get('/', async (req, res) => {
   res.status(200).json(hotels);
 })
 
+const parseDbDate = (dbDateStr) => {
+  const [month, day, year] = dbDateStr.split('.');
+  return new Date(Date.UTC(year, month - 1, day));
+};
+
 const roomFilter = (room, start, end) => {
-  const afterStart = new Date(room.startDate) <= start;
-  const beforeEnd = new Date(room.endDate) >= end;
-  return afterStart && beforeEnd
+  const roomStart = parseDbDate(room.startDate);
+  const roomEnd = parseDbDate(room.endDate);
+  const afterStart = roomStart <= start;
+  const beforeEnd = roomEnd >= end;
+
+  return afterStart && beforeEnd;
 }
 
 const hotelFilter = (hotel, city, start, end) => {
-  const rooms = hotel.rooms
-  return rooms.filter((room) => roomFilter(room, start, end)).length && (hotel.city === city)
+  const validRooms = hotel.rooms.filter((room) => roomFilter(room, start, end));
+  return (validRooms.length > 0) && (hotel.city === city);
 }
 
 router.post('/search', async (req, res) => {
-  const { city, startDate, endDate } = req.body
-  const start = new Date(startDate)
-  const end = new Date(endDate)
+  const { city, startDate, endDate } = req.body;
+  
+  // startDate and endDate in format "MM.DD.YYYY"
+  const start = parseDbDate(startDate);
+  const end = parseDbDate(endDate);
 
-  const database = getConnection()
+  const database = getConnection();
   const hotelCollection = database.collection('hotels');
 
-  const hotels = await hotelCollection.find({}).toArray()
-  const result = hotels.filter((hotel) => hotelFilter(hotel, city, start, end))
-  if (result) {
-    return res.status(200).json(result)
+  const hotels = await hotelCollection.find({}).toArray();
+  const result = hotels.filter((hotel) => hotelFilter(hotel, city, start, end));
+
+  if (result.length > 0) {
+    return res.status(200).json(result);
   } else {
-    return res.status(404).json({ message: "No hotels with at least one room it this date interval" })
+    return res.status(404).json({ message: "No hotels with at least one room in this date interval" });
   }
-})
+});
 
 
 router.post('/:id/rooms', async (req, res) => {
-  const { id } = req.params
-  const { startDate, endDate } = req.body
-
+  const { id } = req.params;
+  const { startDate, endDate } = req.body;
   const idInt = parseInt(id);
-  const start = new Date(startDate)
-  const end = new Date(endDate)
 
   const database = getConnection();
   const hotelCollection = database.collection('hotels');
 
   const resultHotel = await hotelCollection.findOne({ id: idInt });
-  if (resultHotel) {
-    const roomList = resultHotel.rooms.filter((room) => roomFilter(room, start, end))
-    if (roomList) {
-      return res.status(200).json(roomList)
-    } else {
-      return res.status(404).json({ message: "no aviable rooms" })
-    }
-  } else {
-    return res.status(404).json({ message: "Hotel not found" })
+  if (!resultHotel) {
+    return res.status(404).json({ message: "Hotel not found" });
   }
-})
+
+  if (!startDate || !endDate) {
+    return res.status(200).json(resultHotel.rooms);
+  }
+
+  const start = parseDbDate(startDate);
+  const end = parseDbDate(endDate);
+
+  const roomList = resultHotel.rooms.filter((room) => roomFilter(room, start, end));
+  
+  if (roomList.length > 0) {
+    return res.status(200).json(roomList);
+  } else {
+    return res.status(404).json({ message: "No available rooms" });
+  }
+});
+
+
 
 
 
